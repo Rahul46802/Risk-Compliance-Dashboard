@@ -1,0 +1,40 @@
+
+-- DAX measures for Risk & Compliance Dashboard (table/column names match generated CSV files)
+Total Amount = SUM(Transactions[Amount])
+
+Total Risk Exposure = SUMX(Transactions, Transactions[Amount] * Transactions[RiskScore])
+
+Total Risk Exposure LY = CALCULATE([Total Risk Exposure], SAMEPERIODLASTYEAR('Calendar'[Date]))
+
+Risk Exposure YoY % = DIVIDE([Total Risk Exposure] - [Total Risk Exposure LY], [Total Risk Exposure LY], 0)
+
+Overdue Compliance Count =
+CALCULATE(
+    COUNTROWS(Compliance_Logs),
+    Compliance_Logs[Status] <> "Closed",
+    Compliance_Logs[DaysOverdue] > 0
+)
+
+Avg Overdue Days =
+AVERAGEX(
+    FILTER(Compliance_Logs, Compliance_Logs[Status] <> "Closed" && Compliance_Logs[DaysOverdue] > 0),
+    Compliance_Logs[DaysOverdue]
+)
+
+Compliance Completion Rate =
+DIVIDE(
+    CALCULATE(COUNTROWS(ComplianceLogs), ComplianceLogs[Status] = "Closed"),
+    COUNTROWS(ComplianceLogs),
+    0
+)
+
+Risk Exposure MoM % =
+VAR _prev = CALCULATE([Total Risk Exposure], DATEADD('Calendar'[Date], -1, MONTH))
+RETURN DIVIDE([Total Risk Exposure] - _prev, _prev, 0)
+
+SLA Breach Count =
+CALCULATE(
+    COUNTROWS(ComplianceLogs),
+    ComplianceLogs[Status] <> "Closed",
+    ComplianceLogs[DaysOverdue] > 7
+)
